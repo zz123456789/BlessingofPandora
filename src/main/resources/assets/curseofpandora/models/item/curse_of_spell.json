@@ -1,0 +1,14 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "curseofpandora:item/pandora/curse_of_spell"
+  },
+  "overrides": [
+    {
+      "predicate": {
+        "custom_model_data": 107
+      },
+      "model": "blessingofpandora:item/blessing_of_liberation"
+    }
+  ]
+}

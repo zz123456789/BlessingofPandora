@@ -1,2 +1,114 @@
-# BlessingofPandora
-This is an add-on mod for Pandora. Its core mechanic is to transform Pandora's seven curses into blessings through various reversal methods, while retaining the Reality Index and accessory slot upgrades, offering a different gameplay experience.
+# Blessing of Pandora 模组简介
+
+## 模组定位
+
+**潘多拉之祝**（英文名：Blessing of Pandora）是《潘多拉之咒》的附属模组，模组 ID 为 `blessingofpandora`。模组将潘多拉之咒中的七个现实诅咒分别反转为七种理想祝福，并使用潘多拉之咒自带的潘多拉手环作为序诗与终章载体。
+
+祝福不再保留旧描述中的攻击速度、攻击距离等效果，而是提供少量明确属性，并保留对应现实指数。
+
+## 环境与前置
+
+- Minecraft：1.20.1
+- Forge：47.4.10
+- 潘多拉之咒：`curseofpandora >= 2.4.26`，必装
+- Curios：`curios >= 5.4.5`，必装
+- JEI：可选，用于查看七个诅咒的反转方式
+- Touhou Little Maid：可选，用于女仆适配
+
+## 七个理想祝福
+
+当前版本中，七个祝福提供以下效果：
+
+| 祝福 | 效果 | 现实指数 |
+| --- | --- | --- |
+| 理想第一祝福：自由 | +1 项链饰品栏位 | +1 |
+| 理想第二祝福：无限 | +1 手镯饰品栏位 | +1 |
+| 理想第三祝福：精神 | 幸运值 +10 | +1 |
+| 理想第四祝福：强壮 | 强壮 +0.5（最大生命值 +50%） | +1 |
+| 理想第五祝福：无畏 | 无饰品栏位 | +2 |
+| 理想第六祝福：安魂 | +2 护符饰品栏位 | +1 |
+| 理想第七祝福：解脱 | +1 手饰饰品栏位 | +1 |
+
+“强壮”是本模组注册的新属性，默认值为 0。该属性以百分比乘区修饰实体的最大生命值，佩戴理想第四祝福：强壮会获得 0.5 强壮，即最大生命值 +50%。
+
+## 潘多拉手环与诅化祝
+
+- 玩家第一次同时佩戴七个现实诅咒时，会获得带有“序诗” NBT 的潘多拉之咒手环（`pandora:pandora_bracelet`）。
+- 玩家每将一个身上的诅咒转化为祝福，“诅化祝”数值增加 1。
+- “诅化祝”初始值为 0，上限为 7。
+- 数值第一次达到 7 时，会获得带有“终章” NBT 的潘多拉之咒手环，之后数值不再变动，也不再重复检测。
+- 两种手环都会记录获得玩家，只有该玩家可以装备。
+
+## 游戏内指令
+
+以下指令需要管理员权限。
+
+直接转化身上对应的诅咒：
+
+```mcfunction
+/blessingofpandora 1
+/blessingofpandora 2
+/blessingofpandora 3
+/blessingofpandora 4
+/blessingofpandora 5
+/blessingofpandora 6
+/blessingofpandora 7
+```
+
+数字对应：1 自由、2 无限、3 精神、4 强壮、5 无畏、6 安魂、7 解脱。转化后的祝福归属当前玩家。
+
+赐予祝福物品：
+
+```mcfunction
+/blessingofpandora give freedom
+/blessingofpandora give freedom @p
+/blessingofpandora giveall
+/blessingofpandora giveall @p
+/giveblessing freedom
+/giveblessing freedom @p
+```
+
+可补全名称：`freedom`、`infinity`、`spirit`、`strength`、`fearlessness`、`requiem`、`liberation`。
+
+## 车万女仆适配
+
+安装了 Touhou Little Maid 后，女仆也可以通过 Curios 佩戴潘多拉串饰中的祝福物品。女仆获得饰品栏位、属性效果和现实指数时会检查女仆主人是否与祝福归属玩家一致：
+
+- 主人一致：女仆可以获得祝福提供的饰品栏位、属性效果和现实指数。
+- 主人不一致或女仆没有对应主人：这些效果不会触发。
+
+未记录归属的祝福属于无主版本，玩家和女仆都可以正常使用。
+
+## 塑魂
+
+- 新增药水效果“塑魂”，不添加对应药水瓶等物品。blessingofpandora:soul_sculpting
+- 塑魂共有五级：I 提供 5%、II 提供 7%、III 提供 10%、IV 提供 15%、V 提供 20% 全伤害减免；超过 V 级仍按 V 级计算。该免伤独立于其它免伤效果并最后结算。
+- 佩戴现实第六诅咒：碎魂时，生命值低于最大生命值 75% 持续获得塑魂 I，低于 50% 持续获得塑魂 III，低于 25% 持续获得塑魂 V；生命值达到最大生命值 75% 及以上时自动移除塑魂。
+
+## 诅咒反转
+
+七个现实诅咒分别拥有独立的反转条件：
+
+- 现实第一诅咒：囚笼 → 自由：拥有力量效果时，空手击杀凋零。
+- 现实第二诅咒：制限 → 无限：在主世界从 Y=666 及以上下落到 Y=-60 及以下。
+- 现实第三诅咒：血肉 → 精神：获得隐身效果后被闪电击中。
+- 现实第四诅咒：羸弱 → 强壮：击杀生命上限不低于 325 且带有虚弱效果的生物。
+- 现实第五诅咒：恐惧 → 无畏：手持幽匿尖啸体击杀坚守者。
+- 现实第六诅咒：碎魂 → 安魂：获得任意等级塑魂药水效果后，极快吸收自身经验，累计吸收 4,000,000 点。效果中断时已吸收进度保留。
+- 现实第七诅咒：咒缚 → 解脱：每游戏刻有 0.003% 概率自动转化，每 2000 游戏刻概率提升 0.001%。
+
+转化完成后，祝福会归属转化玩家；生存模式下也可以正常取下。转化时会在物品栏上方显示 8 秒提示。
+
+## 构建
+
+在项目目录下运行：
+
+```powershell
+.\gradlew.bat build --no-daemon
+```
+
+构建产物位于：
+
+```text
+build/libs/blessingofpandora-0.1.0.jar
+```

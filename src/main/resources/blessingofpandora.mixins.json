@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.blessingofpandora.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "blessingofpandora.refmap.json",
+  "mixins": [
+    "PandoraInheritedStackHandlerMixin"
+  ],
+  "client": [
+    "ItemStackMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
