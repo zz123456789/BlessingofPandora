@@ -1,0 +1,18 @@
+Made both reversal HUDs responsive and flow-based: the panel now follows the window size, text wraps within the available width, and content can scroll vertically on small windows without overflowing the HUD border.
+将所有反转HUD改为随窗口自适应的流式布局，面板会跟随窗口大小调整，文本按可用宽度换行，小窗口下可纵向滚动查看，不再超出HUD边框。
+Aligned each HUD row's description and button vertically on the same row, refined the button styling with gold trim and hover feedback, and added an ornamental double-gold HUD frame.
+对齐每个HUD行中的描述文本与按钮位置，优化按钮的金色描边、悬停反馈样式，并为HUD边框加入双层金色饰边。
+Reworked Soul Sculpting acquisition: the effect is now granted automatically while at least 3 other beneficial effects and 5 harmful effects are active, and is removed immediately when either count drops below the requirement.
+重做塑魂效果的获取方式：身上至少有3个其它正面效果和5个负面效果时自动获得，正面或负面效果数量不足时立即消失。
+Changed Soul Sculpting from level-based damage reduction to a persistent attribute-backed effect: affected entities gain 20% maximum health and take 20% bonus damage while the effect remains active.
+将塑魂从按等级减免伤害改为持续期间的属性效果：拥有塑魂的实体获得20%最大生命值提升，并受到20%额外伤害。
+Added a distinct Soul Sculpting acquisition line to its related item, HUD, and JEI descriptions, styled in aqua italics: obtain it while simultaneously having three beneficial effects and five harmful effects.
+在碎魂相关的物品、HUD与JEI描述中新增一段青蓝色斜体的塑魂获取方式说明：同时拥有三种正面效果和五种负面效果时获得塑魂。
+Added current curse/blessing wearing state descriptions to all seven reversal HUD and JEI pages, and restyled the not-wearing/current-state lines with distinct gray and green italics.
+为七个反转的HUD与JEI页面统一加入当前诅咒或祝福佩戴状态描述，并使用灰色、绿色斜体区分未佩戴与已佩戴状态。
+Made the Seventh Reality Curse description state explicitly that conversion is rolled every game tick, with the configured base chance and extra chance per curse enchantment shown as highlighted configurable values.
+将现实第七诅咒的转化描述补全为每个游戏刻都会进行一次概率判定，并明确显示基础概率和每个诅咒附魔额外增加的概率配置值。
+Added an option to disable detailed Blessing of Pandora logs, defaulting it to false so normal logs stay quiet; set enableDetailedLogs to true to restore the full diagnostic logs.
+新增关闭模组详细日志输出的配置项并默认关闭，平时不再输出日志；将enableDetailedLogs设为true后才会输出完整诊断日志。
+Updated the version to 1.5.0.
+版本号更新至1.5.0。

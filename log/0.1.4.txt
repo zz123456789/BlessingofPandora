@@ -1,0 +1,8 @@
+Rebuilt the Sixth Reality Curse reversal with a dedicated progress state machine: conversions now search every Curios slot, Broken Soul drains the player's available experience while Soul Sculpting is active, the drained amount is credited to the conversion library, conversion completes at 2,000,000, HUD and JEI show the current absorbed value or a not-wearing message, the value locks at 2,000,000 while the completed Requiem blessing is worn, and it resets to 0 when that blessing is removed.
+重建现实第六诅咒反转逻辑并加入独立进度状态机：转化现在会遍历全部Curios栏位，佩戴碎魂且拥有塑魂时持续扣除玩家可用经验并计入转化经验库，达到2,000,000完成转化；HUD与JEI显示当前已吸收经验或未佩戴提示，佩戴已完成安魂祝福时锁定显示2,000,000，脱下祝福后归零。
+Changed the First Reality Curse death check to accept any player-caused kill while the main hand is empty, so empty-hand spell mods can trigger the Cage to Freedom conversion.
+调整现实第一诅咒击杀判定，改为玩家造成击杀且主手为空即可触发囚笼转化为自由，支持空手施法类魔法模组。
+Replaced the Soul Sculpting effect texture with the new artwork and renamed it to soul_sculpting.png.
+将碎魂药水效果贴图替换为新绘制内容，并重命名为soul_sculpting.png。
+Updated the version to 0.1.4.
+版本号更新至0.1.4。

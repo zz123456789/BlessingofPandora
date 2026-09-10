@@ -1,0 +1,6 @@
+Rebuilt the Sixth Reality Curse experience absorption into a dedicated SixthCurseProgress state machine. It drains the player's available experience while wearing the curse with any Soul Sculpting level, credits the exact drained amount to the conversion progress, converts at 2,000,000, locks the displayed value at 2,000,000 while wearing the completed Requiem blessing, and resets to 0 when that blessing is removed.
+重建现实第六诅咒的经验吸收为独立进度状态机。佩戴碎魂且拥有任意塑魂等级时持续检测并快速扣除玩家可用经验，实际扣除数量计入转化经验库，达到2,000,000完成转化；佩戴已完成转化的安魂祝福时显示锁定为2,000,000，脱下祝福后归零。
+Changed all Sixth Curse HUD/JEI descriptions to show "当前没有佩戴第六诅咒" while neither the curse nor the completed blessing is worn.
+修改第六诅咒相关 HUD/JEI 描述，在未佩戴第六诅咒且未佩戴已完成安魂祝福时显示“当前没有佩戴第六诅咒”。
+Created this version as the temporary test build 0.1.4fix.
+创建临时测试版本0.1.4fix。
