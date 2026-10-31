@@ -2,17 +2,13 @@ package com.blessingofpandora.jei;
 
 import com.blessingofpandora.BlessingOfPandora;
 import com.blessingofpandora.BlessingDefinitions;
-import com.blessingofpandora.BlessingNbt;
+import com.blessingofpandora.LoveOrbRegistration;
+import net.minecraft.network.chat.Component;
 import mezz.jei.api.IModPlugin;
 import mezz.jei.api.JeiPlugin;
+import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.registries.ForgeRegistries;
-
-import java.util.ArrayList;
 import java.util.List;
 
 @JeiPlugin
@@ -28,77 +24,35 @@ public class BlessingOfPandoraJeiPlugin implements IModPlugin
     }
 
     @Override
-    public void registerRecipes(IRecipeRegistration registration)
+    public void registerCategories(IRecipeCategoryRegistration registration)
     {
-        List<ItemStack> ingredients = new ArrayList<>();
-        ingredients.add(BlessingNbt.createStack(BlessingDefinitions.FREEDOM));
-
-        Item curse = ForgeRegistries.ITEMS.getValue(
-                ResourceLocation.parse("curseofpandora:curse_of_inertia"));
-        if (curse != null)
-        {
-            ingredients.add(new ItemStack(curse));
-        }
-
-        registration.addItemStackInfo(ingredients,
-                Component.translatable("jei.blessingofpandora.reversal_freedom.title"),
-                Component.translatable("jei.blessingofpandora.reversal_freedom.step_1"),
-                Component.translatable("jei.blessingofpandora.reversal_freedom.step_2"),
-                Component.translatable("jei.blessingofpandora.reversal_freedom.result"));
-
-        List<ItemStack> infinityIngredients = new ArrayList<>();
-        infinityIngredients.add(BlessingNbt.createStack(BlessingDefinitions.INFINITY));
-
-        Item curseOfProximity = ForgeRegistries.ITEMS.getValue(
-                ResourceLocation.parse("curseofpandora:curse_of_proximity"));
-        if (curseOfProximity != null)
-        {
-            infinityIngredients.add(new ItemStack(curseOfProximity));
-        }
-
-        registration.addItemStackInfo(infinityIngredients,
-                Component.translatable("jei.blessingofpandora.reversal_infinity.title"),
-                Component.translatable("jei.blessingofpandora.reversal_infinity.step_1"),
-                Component.translatable("jei.blessingofpandora.reversal_infinity.step_2"),
-                Component.translatable("jei.blessingofpandora.reversal_infinity.result"));
-
-        addReversal(registration, BlessingNbt.createStack(BlessingDefinitions.SPIRIT),
-                "curseofpandora:curse_of_flesh", "reversal_spirit.title",
-                "reversal_spirit.step_1", "reversal_spirit.step_2", "reversal_spirit.result");
-        addReversal(registration, BlessingNbt.createStack(BlessingDefinitions.STRENGTH),
-                "curseofpandora:curse_of_metabolism", "reversal_strength.title",
-                "reversal_strength.step_1", "reversal_strength.step_2", "reversal_strength.result");
-        addReversal(registration, BlessingNbt.createStack(BlessingDefinitions.FEARLESSNESS),
-                "curseofpandora:curse_of_tension", "reversal_fearlessness.title",
-                "reversal_fearlessness.step_1", "reversal_fearlessness.step_2",
-                "reversal_fearlessness.step_3", "reversal_fearlessness.result");
-        addReversal(registration, BlessingNbt.createStack(BlessingDefinitions.REQUIEM),
-                "curseofpandora:curse_of_prudence", "reversal_requiem.title",
-                "reversal_requiem.step_1", "reversal_requiem.step_2",
-                "reversal_requiem.step_3", "reversal_requiem.result");
-        addReversal(registration, BlessingNbt.createStack(BlessingDefinitions.LIBERATION),
-                "curseofpandora:curse_of_spell", "reversal_liberation.title",
-                "reversal_liberation.step_1", "reversal_liberation.result");
+        registration.addRecipeCategories(new ReversalRecipeCategory(
+                registration.getJeiHelpers().getGuiHelper()));
     }
 
-    private static void addReversal(
-            IRecipeRegistration registration, ItemStack blessing, String curseId, String titleKey, String... infoKeys)
+    @Override
+    public void registerRecipes(IRecipeRegistration registration)
     {
-        List<ItemStack> ingredients = new ArrayList<>();
-        ingredients.add(blessing);
-
-        Item curse = ForgeRegistries.ITEMS.getValue(ResourceLocation.parse(curseId));
-        if (curse != null)
-        {
-            ingredients.add(new ItemStack(curse));
-        }
-
-        Component[] components = new Component[infoKeys.length];
-        components[0] = Component.translatable("jei.blessingofpandora." + titleKey);
-        for (int i = 1; i < infoKeys.length; i++)
-        {
-            components[i] = Component.translatable("jei.blessingofpandora." + infoKeys[i]);
-        }
-        registration.addItemStackInfo(ingredients, components);
+        // JEI's information recipes flatten Components during registration.
+        // Our category resolves live text while it is displayed.
+        registration.addRecipes(ReversalRecipeCategory.TYPE, List.of(BlessingDefinitions.values()));
+        if (LoveOrbRegistration.isAvailable())
+            registration.addItemStackInfo(LoveOrbRegistration.createStack(),
+                    Component.translatable("item.blessingofpandora.love_orb.obtain"),
+                    Component.translatable("item.blessingofpandora.love_orb.effect"),
+                    Component.translatable("item.blessingofpandora.love_orb.safety"),
+                    Component.translatable("item.blessingofpandora.love.conditions"));
+        if (LoveOrbRegistration.isAvailable())
+            registration.addItemStackInfo(LoveOrbRegistration.createEternalStack(),
+                    Component.translatable("item.blessingofpandora.love.evolve_obtain"),
+                    Component.translatable("item.blessingofpandora.eternal_love.scope"),
+                    Component.translatable("item.blessingofpandora.eternal_love.effect.1"),
+                    Component.translatable("item.blessingofpandora.eternal_love.effect.2"),
+                    Component.translatable("item.blessingofpandora.eternal_love.effect.3"),
+                    Component.translatable("item.blessingofpandora.eternal_love.effect.4"),
+                    Component.translatable("item.blessingofpandora.eternal_love.effect.5"),
+                    Component.translatable("item.blessingofpandora.eternal_love.effect.6"),
+                    Component.translatable("item.blessingofpandora.eternal_love.effect.7"),
+                    Component.translatable("item.blessingofpandora.love.conditions"));
     }
 }

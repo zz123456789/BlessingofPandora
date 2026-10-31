@@ -1,31 +1,31 @@
 package com.blessingofpandora;
 
+import com.mojang.logging.LogUtils;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
-import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.event.RegisterCommandsEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import top.theillusivec4.curios.api.CuriosApi;
-import top.theillusivec4.curios.api.type.inventory.IDynamicStackHandler;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
 
 @Mod.EventBusSubscriber(modid = BlessingOfPandora.MODID)
 public final class BlessingCommands
 {
+    private static final Logger LOGGER = LogUtils.getLogger();
+
     private static final List<String> SUGGESTIONS = new ArrayList<>();
 
     private BlessingCommands()
@@ -44,6 +44,11 @@ public final class BlessingCommands
     @SubscribeEvent
     public static void register(RegisterCommandsEvent event)
     {
+        if (!BlessingOfPandoraConfig.commandsEnabled())
+        {
+            return;
+        }
+
         event.getDispatcher().register(Commands.literal("blessingofpandora")
                 .requires(source -> source.hasPermission(2))
                 .then(Commands.argument("number", IntegerArgumentType.integer(1, 7))
@@ -105,52 +110,24 @@ public final class BlessingCommands
         ServerPlayer player = context.getSource().getPlayerOrException();
         int number = IntegerArgumentType.getInteger(context, "number");
         BlessingDefinitions definition = BlessingDefinitions.values()[number - 1];
-        Item curse = definition.curseItem();
-        if (curse == null)
+        if (!ReversalPermission.isAllowed(player, definition))
         {
-            context.getSource().sendFailure(
-                    Component.literal("The curse item for this blessing is not available."));
+            BlessingLogs.info(LOGGER, "[BlessingOfPandora] Command conversion blocked by permission: blessing={}, player={}",
+                    definition.id(), player.getScoreboardName());
+            context.getSource().sendFailure(Component.literal(
+                    "This reversal is currently disabled."));
             return 0;
         }
-
-        boolean[] converted = {false};
-        CuriosApi.getCuriosInventory(player).ifPresent(inventory ->
-                inventory.getStacksHandler("pandora_charm").ifPresent(handler -> {
-                    IDynamicStackHandler stacks = handler.getStacks();
-                    for (int i = 0; i < stacks.getSlots(); i++)
-                    {
-                        ItemStack stack = stacks.getStackInSlot(i);
-                        if (stack.is(curse) && !BlessingNbt.isBlessing(stack))
-                        {
-                            ItemStack blessing = stack.copy();
-                            BlessingNbt.convertToBlessing(blessing, definition, player.getUUID());
-                            stacks.setStackInSlot(i, blessing);
-                            converted[0] = true;
-                            PandoraProgress.onCurseConverted(player);
-                            announceConversion(player, curse, definition);
-                            break;
-                        }
-                    }
-                }));
-
-        if (!converted[0])
+        boolean converted = ReversalActions.convertWornCurse(player, definition);
+        if (!converted)
         {
+            BlessingLogs.info(LOGGER, "[BlessingOfPandora] Command conversion found no matching curse stack: blessing={}, player={}",
+                    definition.id(), player.getScoreboardName());
             context.getSource().sendFailure(Component.literal(
                     "You are not wearing the matching curse."));
             return 0;
         }
         return 1;
-    }
-
-    private static void announceConversion(
-            ServerPlayer player, Item curse, BlessingDefinitions definition)
-    {
-        Component message = Component.translatable(
-                        "blessingofpandora.message.converted",
-                        new ItemStack(curse).getHoverName(),
-                        Component.translatable(definition.nameKey()).withStyle(ChatFormatting.GOLD))
-                .withStyle(ChatFormatting.GOLD);
-        BlessingNotices.show(player, message);
     }
 
     private static int give(CommandContext<CommandSourceStack> context, ServerPlayer target)

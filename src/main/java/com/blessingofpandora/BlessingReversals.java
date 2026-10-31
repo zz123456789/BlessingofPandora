@@ -1,50 +1,54 @@
 package com.blessingofpandora;
 
-import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.Component;
+import com.mojang.logging.LogUtils;
+import com.blessingofpandora.network.BlessingNetwork;
+import com.blessingofpandora.network.ReversalStateS2CPacket;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.effect.MobEffects;
-import net.minecraft.world.entity.EntityType;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityStruckByLightningEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.registries.ForgeRegistries;
 import top.theillusivec4.curios.api.CuriosApi;
+import top.theillusivec4.curios.api.type.inventory.ICurioStacksHandler;
 import top.theillusivec4.curios.api.type.inventory.IDynamicStackHandler;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import org.slf4j.Logger;
 
 @Mod.EventBusSubscriber(modid = BlessingOfPandora.MODID)
 public class BlessingReversals
 {
-    private static final long REQUIEM_XP_TOTAL = 4_000_000L;
-    private static final int REQUIEM_XP_PER_TICK = 50_000;
-    private static final double SPELL_INITIAL_CHANCE = 0.00003;
-    private static final long SPELL_CHANCE_INTERVAL = 2000L;
-    private static final double SPELL_CHANCE_STEP = 0.00001;
+    private static final Logger LOGGER = LogUtils.getLogger();
 
     private static final ResourceLocation CURSE_OF_FLESH =
             ResourceLocation.parse("curseofpandora:curse_of_flesh");
     private static final ResourceLocation CURSE_OF_METABOLISM =
             ResourceLocation.parse("curseofpandora:curse_of_metabolism");
-    private static final ResourceLocation CURSE_OF_TENSION =
-            ResourceLocation.parse("curseofpandora:curse_of_tension");
     private static final ResourceLocation CURSE_OF_PRUDENCE =
             ResourceLocation.parse("curseofpandora:curse_of_prudence");
     private static final ResourceLocation CURSE_OF_SPELL =
             ResourceLocation.parse("curseofpandora:curse_of_spell");
 
-    private static final Map<UUID, Long> EXPERIENCE_PROGRESS = new HashMap<>();
-    private static final Map<UUID, Long> SPELL_START_TICKS = new HashMap<>();
+    public static long getExperienceProgress(Player player)
+    {
+        return SixthCurseProgress.get(player);
+    }
+
+    public static void resetExperienceProgress(Player player)
+    {
+        if (SixthCurseProgress.reset(player))
+        {
+            syncReversalState(player);
+        }
+    }
 
     @SubscribeEvent
     public static void onPlayerTick(TickEvent.PlayerTickEvent event)
@@ -64,50 +68,93 @@ public class BlessingReversals
         tryRandomSpellConversion(player);
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = false)
     public static void onLightningStrike(EntityStruckByLightningEvent event)
     {
+        // Let protection/resurrection listeners veto the trigger before granting a blessing.
+        if (event.isCanceled() || event.getEntity().level().isClientSide)
+        {
+            return;
+        }
+        MobEffect effect = ReversalConfigUtil.effect(
+                BlessingOfPandoraConfig.thirdEffect());
         if (event.getEntity() instanceof Player player
-                && player.hasEffect(MobEffects.INVISIBILITY)
+                && effect != null
+                && player.hasEffect(effect)
                 && isWearing(player, getCurse(CURSE_OF_FLESH)))
         {
+            BlessingLogs.info(LOGGER, "[BlessingOfPandora] Third Curse condition met: player={}, effect={}",
+                    player.getScoreboardName(), effect.getDescriptionId());
             convertWornCurse(
                     player, getCurse(CURSE_OF_FLESH), BlessingDefinitions.SPIRIT);
         }
     }
 
-    @SubscribeEvent
+    @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = false)
     public static void onMobKilled(LivingDeathEvent event)
     {
-        if (event.getSource().getEntity() instanceof Player player)
+        if (event.isCanceled() || event.getEntity().level().isClientSide) return;
+        Player player = ReversalCombatCredit.player(event.getSource());
+        if (player != null)
         {
             LivingEntity killed = event.getEntity();
             Item curseOfMetabolism = getCurse(CURSE_OF_METABOLISM);
+            MobEffect fourthEffect = ReversalConfigUtil.effect(
+                    BlessingOfPandoraConfig.fourthEffect());
             if (isWearing(player, curseOfMetabolism)
-                    && killed.hasEffect(MobEffects.WEAKNESS)
-                    && killed.getMaxHealth() >= 325.0F)
+                    && ReversalConfigUtil.entityMatches(
+                            killed, BlessingOfPandoraConfig.fourthMob())
+                    && fourthEffect != null
+                    && killed.hasEffect(fourthEffect)
+                    && killed.getMaxHealth() >= BlessingOfPandoraConfig.fourthMaxHealth())
             {
+                BlessingLogs.info(LOGGER, "[BlessingOfPandora] Fourth Curse condition met: player={}, mob={}, health={}, effect={}",
+                        player.getScoreboardName(),
+                        killed.getType().getDescriptionId(),
+                        killed.getMaxHealth(),
+                        fourthEffect.getDescriptionId());
                 convertWornCurse(
                         player, curseOfMetabolism, BlessingDefinitions.STRENGTH);
             }
+        }
+    }
 
-            if (killed.getType() == EntityType.WARDEN
-                    && isWearing(player, getCurse(CURSE_OF_TENSION))
-                    && isHoldingSculkShrieker(player))
+    @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = false)
+    public static void onFifthMobKilled(LivingDeathEvent event)
+    {
+        if (!event.isCanceled() && !event.getEntity().level().isClientSide
+                && ReversalConfigUtil.entityMatches(
+                        event.getEntity(), BlessingOfPandoraConfig.fifthMob()))
+        {
+            Player player = ReversalCombatCredit.player(event.getSource());
+            if (player != null)
             {
-                convertWornCurse(
-                        player, getCurse(CURSE_OF_TENSION), BlessingDefinitions.FEARLESSNESS);
+                KillReversalProgress.tryConversion(player, BlessingDefinitions.FEARLESSNESS);
             }
         }
     }
 
     private static void updateExperienceAbsorption(Player player)
     {
-        UUID id = player.getUUID();
-        Item curse = getCurse(CURSE_OF_PRUDENCE);
-        if (!isWearing(player, curse))
+        if (SixthCurseProgress.stateChanged(player))
         {
-            EXPERIENCE_PROGRESS.remove(id);
+            syncReversalState(player);
+        }
+        int state = SixthCurseProgress.state(player);
+        if (state == SixthCurseProgress.NOT_WEARING)
+        {
+            if (SixthCurseProgress.reset(player))
+            {
+                syncReversalState(player);
+            }
+            return;
+        }
+        if (state != SixthCurseProgress.WEARING_CURSE)
+        {
+            return;
+        }
+        if (!ReversalPermission.isAllowed(player, BlessingDefinitions.REQUIEM))
+        {
             return;
         }
         if (!player.hasEffect(BlessingOfPandora.SOUL_SCULPTING.get()))
@@ -115,91 +162,80 @@ public class BlessingReversals
             return;
         }
 
-        long absorbed = EXPERIENCE_PROGRESS.getOrDefault(id, 0L);
-        int currentExperience = getCurrentExperiencePoints(player);
-        int drain = Math.min(
-                REQUIEM_XP_PER_TICK,
-                (int) Math.min(REQUIEM_XP_TOTAL - absorbed, currentExperience));
-        if (drain <= 0)
+        long target = BlessingOfPandoraConfig.sixthExperience();
+        long progress = SixthCurseProgress.get(player);
+        if (progress >= target)
         {
+            convertWornCurse(player, getCurse(CURSE_OF_PRUDENCE), BlessingDefinitions.REQUIEM);
             return;
         }
-
-        int before = getCurrentExperiencePoints(player);
+        long before = availableExperience(player);
+        int drain = ExperienceMath.drain(before, progress, target);
+        if (drain == 0) return;
         player.giveExperiencePoints(-drain);
-        int actual = before - getCurrentExperiencePoints(player);
+        long actual = Math.max(0, before - availableExperience(player));
         if (actual <= 0)
         {
             return;
         }
 
-        absorbed += actual;
-        if (absorbed >= REQUIEM_XP_TOTAL)
+        long absorbed = SixthCurseProgress.add(player, actual);
+        syncReversalState(player);
+        if (absorbed >= BlessingOfPandoraConfig.sixthExperience())
         {
-            EXPERIENCE_PROGRESS.remove(id);
             convertWornCurse(
-                    player, curse, BlessingDefinitions.REQUIEM);
-        }
-        else
-        {
-            EXPERIENCE_PROGRESS.put(id, absorbed);
+                    player, getCurse(CURSE_OF_PRUDENCE),
+                    BlessingDefinitions.REQUIEM);
         }
     }
 
-    private static int getCurrentExperiencePoints(Player player)
+    private static long availableExperience(Player player)
     {
-        int total = 0;
-        for (int level = 0; level < player.experienceLevel; level++)
-        {
-            total += xpRequiredForLevel(level);
-        }
-        total += (int) (player.experienceProgress * player.getXpNeededForNextLevel());
-        return total;
+        return ExperienceMath.available(player.experienceLevel,
+                player.experienceProgress, player.getXpNeededForNextLevel());
     }
 
-    private static int xpRequiredForLevel(int level)
+    public static void syncReversalState(Player player)
     {
-        if (level >= 30)
+        if (player instanceof ServerPlayer serverPlayer)
         {
-            return 112 + (level - 30) * 9;
+            BlessingNetwork.sendToPlayer(
+                    serverPlayer,
+                    new ReversalStateS2CPacket(
+                            player.getUUID(),
+                            ReversalPermission.states(player),
+                            SixthCurseProgress.state(player),
+                            SixthCurseProgress.displayValue(player),
+                            KillReversalProgress.failures(player, BlessingDefinitions.FREEDOM),
+                            KillReversalProgress.failures(player, BlessingDefinitions.FEARLESSNESS)));
         }
-        if (level >= 15)
-        {
-            return 37 + (level - 15) * 5;
-        }
-        return 7 + level * 2;
     }
 
     private static void tryRandomSpellConversion(Player player)
     {
         Item curse = getCurse(CURSE_OF_SPELL);
-        UUID id = player.getUUID();
-        long now = player.level().getGameTime();
         if (!isWearing(player, curse))
         {
-            SPELL_START_TICKS.remove(id);
+            return;
+        }
+        if (!ReversalPermission.isAllowed(player, BlessingDefinitions.LIBERATION))
+        {
             return;
         }
 
-        long start = SPELL_START_TICKS.getOrDefault(id, now);
-        long elapsed = now - start;
-        double chance = SPELL_INITIAL_CHANCE
-                + (elapsed / SPELL_CHANCE_INTERVAL) * SPELL_CHANCE_STEP;
+        // Keep this second Curios read: holder callbacks may have queued an update.
+        ItemStack curseStack = findWornCurseStack(player, curse);
+        if (curseStack.isEmpty())
+        {
+            return;
+        }
+        long curseCount = CurseEnchantments.count(curseStack);
+        double chance = BlessingOfPandoraConfig.seventhBaseChance()
+                + curseCount * BlessingOfPandoraConfig.seventhCurseBonus();
         if (player.getRandom().nextDouble() < chance)
         {
-            SPELL_START_TICKS.remove(id);
             convertWornCurse(player, curse, BlessingDefinitions.LIBERATION);
         }
-        else
-        {
-            SPELL_START_TICKS.put(id, start);
-        }
-    }
-
-    private static boolean isHoldingSculkShrieker(Player player)
-    {
-        return player.getMainHandItem().is(Blocks.SCULK_SHRIEKER.asItem())
-                || player.getOffhandItem().is(Blocks.SCULK_SHRIEKER.asItem());
     }
 
     private static Item getCurse(ResourceLocation id)
@@ -212,41 +248,31 @@ public class BlessingReversals
         return BlessingNbt.isWearingCurse(player, item);
     }
 
-    private static void convertWornCurse(Player player, Item curse, BlessingDefinitions blessing)
+    public static ItemStack findWornCurseStack(Player player, Item item)
     {
-        if (curse == null)
+        if (item == null)
         {
-            return;
+            return ItemStack.EMPTY;
         }
-
-        CuriosApi.getCuriosInventory(player).ifPresent(inventory ->
-                inventory.getStacksHandler("pandora_charm").ifPresent(handler -> {
-                    IDynamicStackHandler stacks = handler.getStacks();
-                    for (int i = 0; i < stacks.getSlots(); i++)
-                    {
-                        ItemStack stack = stacks.getStackInSlot(i);
-                        if (stack.is(curse) && !BlessingNbt.isBlessing(stack))
-                        {
-                            ItemStack blessingStack = stack.copy();
-                            BlessingNbt.convertToBlessing(
-                                    blessingStack, blessing, player.getUUID());
-                            stacks.setStackInSlot(i, blessingStack);
-                            PandoraProgress.onCurseConverted(player);
-                            announceConversion(player, curse, blessing);
-                            break;
-                        }
-                    }
-                }));
+        var inventory = CuriosApi.getCuriosInventory(player).orElse(null);
+        if (inventory == null) return ItemStack.EMPTY;
+        for (ICurioStacksHandler handler : inventory.getCurios().values())
+        {
+            IDynamicStackHandler stacks = handler.getStacks();
+            for (int i = 0; i < stacks.getSlots(); i++)
+            {
+                ItemStack stack = stacks.getStackInSlot(i);
+                if (stack.is(item) && !BlessingNbt.isBlessing(stack))
+                {
+                    return stack;
+                }
+            }
+        }
+        return ItemStack.EMPTY;
     }
 
-    private static void announceConversion(
-            Player player, Item curse, BlessingDefinitions blessing)
+    private static void convertWornCurse(Player player, Item curse, BlessingDefinitions blessing)
     {
-        Component message = Component.translatable(
-                        "blessingofpandora.message.converted",
-                        new ItemStack(curse).getHoverName(),
-                        Component.translatable(blessing.nameKey()).withStyle(ChatFormatting.GOLD))
-                .withStyle(ChatFormatting.GOLD);
-        BlessingNotices.show(player, message);
+        ReversalActions.convertWornCurse(player, blessing);
     }
 }

@@ -44,6 +44,17 @@ public final class PandoraBraceletItem
         return !stack.isEmpty() && item != null && stack.is(item);
     }
 
+    public static boolean isGiftedBracelet(ItemStack stack)
+    {
+        if (!stack.hasTag())
+        {
+            return false;
+        }
+        String chapter = stack.getTag().getString(CHAPTER_TAG);
+        return (CHAPTER_PROLOGUE.equals(chapter) || CHAPTER_EPILOGUE.equals(chapter))
+                && isPandoraBracelet(stack);
+    }
+
     public static boolean isOwner(ItemStack stack, UUID uuid)
     {
         if (!stack.hasTag() || !stack.getTag().contains(BlessingNbt.OWNER_TAG))
@@ -93,7 +104,7 @@ public final class PandoraBraceletItem
                 .withStyle(ChatFormatting.BOLD));
 
         TextColor silver = TextColor.fromRgb(0xC8D8E8);
-        for (int i = 1; i < lines.length; i++)
+        for (int i = 0; i < lines.length; i++)
         {
             tooltip.add(index++, Component.literal(lines[i])
                     .withStyle(style -> style.withColor(silver)));

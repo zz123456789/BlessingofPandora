@@ -1,0 +1,7 @@
+{
+  "replace": false,
+  "values": [
+    { "id": "blessingofpandora:love_orb", "required": false },
+    { "id": "blessingofpandora:eternal_love_orb", "required": false }
+  ]
+}

@@ -119,6 +119,37 @@ sourceSets.main.resources { srcDir 'src/generated/resources' }
 
 def pandoraApiJar = file("${buildDir}/pandora-api/pandora-0.1.10-slim.jar")
 
+// Compile optional integrations against their public APIs. These jars are never
+// bundled: the normal Pandora dependencies and optional Maid mod supply them at runtime.
+def loveApiDir = file("${buildDir}/love-api")
+loveApiDir.mkdirs()
+[
+    '[车万女仆] touhoulittlemaid-1.5.3-forge+mc1.20.1.jar': 'touhoulittlemaid-1.5.3.jar',
+    '[莱特兰-扩充] l2complements-2.6.1.jar': 'l2complements-2.6.1.jar'
+].each { original, target ->
+    def sourceJar = file(original)
+    def destination = new File(loveApiDir, target)
+    if (!destination.exists() || destination.lastModified() < sourceJar.lastModified()) {
+        java.nio.file.Files.copy(sourceJar.toPath(), destination.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+    }
+}
+[
+    '[莱特兰-扩充] l2complements-2.6.1.jar': ['l2damagetracker-0.4.4.jar'],
+    'l2library-2.5.3.jar': ['Registrate-MC1.20-1.3.11.jar', 'l2serial-1.2.2.jar']
+].each { original, children ->
+    def sourceJar = file(original)
+    new java.util.zip.ZipFile(sourceJar).withCloseable { zip ->
+        children.each { child ->
+            def destination = new File(loveApiDir, child)
+            if (!destination.exists() || destination.lastModified() < sourceJar.lastModified()) {
+                zip.getInputStream(zip.getEntry('META-INF/jarjar/' + child)).withCloseable { input ->
+                    java.nio.file.Files.copy(input, destination.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                }
+            }
+        }
+    }
+}
+
 tasks.register('extractPandoraApi') {
     outputs.file pandoraApiJar
     doLast {
@@ -144,6 +175,7 @@ tasks.named('compileJava') {
 }
 
 repositories {
+    flatDir { dirs project.projectDir, loveApiDir }
     // Put repositories for dependencies here
     // ForgeGradle automatically adds the Forge maven and Maven Central for you
 
@@ -186,6 +218,13 @@ dependencies {
     compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-common-api:${jei_version}")
     compileOnly fg.deobf("mezz.jei:jei-${minecraft_version}-forge-api:${jei_version}")
     compileOnly files(pandoraApiJar)
+    compileOnly fg.deobf('love.api:curseofpandora:2.4.26')
+    compileOnly fg.deobf('love.api:l2library:2.5.3')
+    compileOnly fg.deobf('love.api:l2complements:2.6.1')
+    compileOnly fg.deobf('love.api:l2damagetracker:0.4.4')
+    compileOnly fg.deobf('love.api:l2serial:1.2.2')
+    compileOnly fg.deobf('love.api:Registrate-MC1.20:1.3.11')
+    compileOnly fg.deobf('love.api:touhoulittlemaid:1.5.3')
     compileOnly 'org.spongepowered:mixin:0.8.5'
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 
@@ -215,6 +254,14 @@ tasks.named('processResources', ProcessResources).configure {
 
 // Example for how to get properties into the manifest for reading at runtime.
 tasks.named('jar', Jar).configure {
+    // MPL-2.0-covered flowing-name adaptations ship with their corresponding source.
+    from('src/main/java') {
+        include 'com/blessingofpandora/LoveNameStyle.java'
+        include 'com/blessingofpandora/client/LoveNameFontEffects.java'
+        include 'com/blessingofpandora/mixin/LoveNameFontMixin.java'
+        include 'com/blessingofpandora/mixin/LoveNameItemStackMixin.java'
+        into 'META-INF/third-party/tlt-love-name/source'
+    }
     manifest {
         attributes([
                 'Specification-Title'     : mod_id,
@@ -253,3 +300,13 @@ publishing {
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
 }
+
+tasks.register('verifyCoreRegression', JavaExec) {
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'com.blessingofpandora.CoreRegressionChecks'
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+tasks.named('check') { dependsOn 'verifyCoreRegression' }

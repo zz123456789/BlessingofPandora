@@ -29,11 +29,15 @@ public final class StrongAttributeHandler
             return;
         }
 
-        AttributeInstance strong = entity.getAttribute(BlessingOfPandora.STRONG.get());
-        if (strong == null)
+        var attributes = entity.getAttributes();
+        var strong = BlessingOfPandora.STRONG.get();
+        if (!attributes.hasAttribute(strong))
         {
             return;
         }
+
+        double value = attributes.getValue(strong);
+        if (value == 0.0 && !attributes.hasModifier(Attributes.MAX_HEALTH, MAX_HEALTH_MODIFIER)) return;
 
         AttributeInstance maxHealth = entity.getAttribute(Attributes.MAX_HEALTH);
         if (maxHealth == null)
@@ -41,7 +45,6 @@ public final class StrongAttributeHandler
             return;
         }
 
-        double value = strong.getValue();
         AttributeModifier existing = maxHealth.getModifier(MAX_HEALTH_MODIFIER);
         if (value == 0.0)
         {

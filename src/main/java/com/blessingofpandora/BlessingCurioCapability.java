@@ -8,7 +8,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
@@ -27,6 +26,9 @@ import java.util.UUID;
 @Mod.EventBusSubscriber(modid = BlessingOfPandora.MODID)
 public final class BlessingCurioCapability
 {
+    private static final ResourceLocation CAPABILITY_ID =
+            ResourceLocation.parse(BlessingOfPandora.MODID + ":blessing_curio");
+
     private BlessingCurioCapability()
     {
     }
@@ -35,26 +37,13 @@ public final class BlessingCurioCapability
     public static void attach(AttachCapabilitiesEvent<ItemStack> event)
     {
         ItemStack stack = event.getObject();
-        if (!isCurseItem(stack))
+        if (BlessingDefinitions.fromCurseItem(stack) == null)
         {
             return;
         }
         event.addCapability(
-                ResourceLocation.parse(BlessingOfPandora.MODID + ":blessing_curio"),
+                CAPABILITY_ID,
                 new Provider(stack));
-    }
-
-    private static boolean isCurseItem(ItemStack stack)
-    {
-        for (BlessingDefinitions definition : BlessingDefinitions.values())
-        {
-            Item curse = definition.curseItem();
-            if (curse != null && stack.is(curse))
-            {
-                return true;
-            }
-        }
-        return false;
     }
 
     private static class Provider implements ICapabilityProvider

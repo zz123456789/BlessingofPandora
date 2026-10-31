@@ -33,15 +33,20 @@ public final class BlessingOwners
 
     public static boolean isUsableBy(ItemStack stack, LivingEntity wearer)
     {
-        if (!BlessingNbt.isBlessing(stack))
-        {
-            return false;
-        }
+        return BlessingNbt.isBlessing(stack) && hasUsableOwner(stack, wearer);
+    }
+
+    /** Ownership only; callers already established that this stack is a blessing. */
+    static boolean hasUsableOwner(ItemStack stack, LivingEntity wearer)
+    {
         String owner = ownerId(stack);
         if (owner.isEmpty())
         {
             return true;
         }
+        // Entity maintains this string alongside its UUID, including setUUID/load updates.
+        // Reuse it for players instead of formatting a new string for every equipped blessing.
+        if (wearer instanceof Player player) return owner.equals(player.getStringUUID());
         UUID effectiveOwner = effectiveOwnerUuid(wearer);
         return effectiveOwner != null && owner.equals(effectiveOwner.toString());
     }

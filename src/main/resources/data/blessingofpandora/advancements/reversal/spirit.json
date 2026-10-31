@@ -1,0 +1,46 @@
+{
+  "parent": "blessingofpandora:root",
+  "display": {
+    "icon": {
+      "item": "curseofpandora:curse_of_flesh",
+      "nbt": "{CustomModelData:103,\"blessingofpandora:blessing\":1b,\"blessingofpandora:blessing_id\":\"blessing_of_spirit\"}"
+    },
+    "title": {
+      "translate": "advancements.blessingofpandora.spirit.title",
+      "color": "gold",
+      "bold": true
+    },
+    "description": {
+      "text": "",
+      "extra": [
+        {
+          "translate": "advancements.blessingofpandora.spirit.flavor",
+          "color": "#F2C979",
+          "italic": true
+        },
+        {
+          "text": "\n"
+        },
+        {
+          "translate": "advancements.blessingofpandora.spirit.description",
+          "color": "#EFE2C4",
+          "italic": false
+        }
+      ]
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "converted": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "converted"
+    ]
+  ]
+}

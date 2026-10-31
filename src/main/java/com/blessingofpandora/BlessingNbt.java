@@ -50,23 +50,22 @@ public final class BlessingNbt
         {
             return null;
         }
+        BlessingDefinitions definition = BlessingDefinitions.byId(blessingId(stack));
+        // Tooltips and capabilities historically fall back to the item even for an unknown ID.
+        return definition != null ? definition : BlessingDefinitions.fromCurseItem(stack);
+    }
+
+    /** Strict equipped identity, unlike the permissive tooltip/capability fallback above. */
+    static BlessingDefinitions getUsableBlessing(ItemStack stack, LivingEntity wearer)
+    {
+        if (!isBlessing(stack)) return null;
         String id = blessingId(stack);
-        for (BlessingDefinitions definition : BlessingDefinitions.values())
-        {
-            if (definition.id().equals(id))
-            {
-                return definition;
-            }
-        }
-        for (BlessingDefinitions definition : BlessingDefinitions.values())
-        {
-            Item curse = definition.curseItem();
-            if (curse != null && stack.is(curse))
-            {
-                return definition;
-            }
-        }
-        return null;
+        BlessingDefinitions definition = id.isEmpty()
+                ? BlessingDefinitions.fromCurseItem(stack) : BlessingDefinitions.byId(id);
+        if (definition == null) return null;
+        Item curse = definition.curseItem();
+        return curse != null && stack.is(curse) && BlessingOwners.hasUsableOwner(stack, wearer)
+                ? definition : null;
     }
 
     public static ItemStack createStack(BlessingDefinitions definition)
@@ -90,6 +89,11 @@ public final class BlessingNbt
             ItemStack stack, BlessingDefinitions definition, java.util.UUID owner)
     {
         CompoundTag tag = stack.getOrCreateTag();
+        if (definition == BlessingDefinitions.LIBERATION && !isBlessing(stack)
+                && BlessingOfPandoraConfig.SEVENTH_CLEAR_CURSE_ENCHANTMENTS.get())
+        {
+            CurseEnchantments.removeStoredCurses(stack);
+        }
         tag.putBoolean(BLESSING_TAG, true);
         tag.putString(BLESSING_ID_TAG, definition.id());
         if (owner != null)
@@ -102,6 +106,30 @@ public final class BlessingNbt
                 Component.translatable(definition.nameKey()).withStyle(ChatFormatting.GOLD));
     }
 
+    public static void revertToCurse(ItemStack stack)
+    {
+        if (stack.isEmpty() || !isBlessing(stack))
+        {
+            return;
+        }
+        CompoundTag tag = stack.getOrCreateTag();
+        tag.remove(BLESSING_TAG);
+        tag.remove(BLESSING_ID_TAG);
+        tag.remove(OWNER_TAG);
+        tag.remove("CustomModelData");
+        removeFakeGlint(tag);
+        int hideFlags = tag.getInt("HideFlags") & ~HIDE_ENCHANTMENTS;
+        if (hideFlags == 0)
+        {
+            tag.remove("HideFlags");
+        }
+        else
+        {
+            tag.putInt("HideFlags", hideFlags);
+        }
+        stack.resetHoverName();
+    }
+
     public static boolean isWearingBlessing(
             LivingEntity wearer, BlessingDefinitions definition)
     {
@@ -112,9 +140,9 @@ public final class BlessingNbt
                         IDynamicStackHandler stacks = handler.getStacks();
                         for (int i = 0; i < stacks.getSlots(); i++)
                         {
-                            if (isBlessing(stacks.getStackInSlot(i), definition)
-                                    && BlessingOwners.isUsableBy(
-                                    stacks.getStackInSlot(i), wearer))
+                            ItemStack stack = stacks.getStackInSlot(i);
+                            if (isBlessing(stack, definition)
+                                    && BlessingOwners.hasUsableOwner(stack, wearer))
                             {
                                 return true;
                             }
@@ -175,5 +203,30 @@ public final class BlessingNbt
             tag.put("Enchantments", enchantments);
         }
         tag.putInt("HideFlags", tag.getInt("HideFlags") | HIDE_ENCHANTMENTS);
+    }
+
+    private static void removeFakeGlint(CompoundTag tag)
+    {
+        if (!tag.contains("Enchantments", 9))
+        {
+            return;
+        }
+        ListTag enchantments = tag.getList("Enchantments", 10);
+        for (int i = enchantments.size() - 1; i >= 0; i--)
+        {
+            CompoundTag enchantment = enchantments.getCompound(i);
+            if ("blessingofpandora:glint".equals(enchantment.getString("id")))
+            {
+                enchantments.remove(i);
+            }
+        }
+        if (enchantments.isEmpty())
+        {
+            tag.remove("Enchantments");
+        }
+        else
+        {
+            tag.put("Enchantments", enchantments);
+        }
     }
 }

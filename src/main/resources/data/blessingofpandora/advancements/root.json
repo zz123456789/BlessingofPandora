@@ -1,0 +1,45 @@
+{
+  "display": {
+    "icon": {
+      "item": "pandora:pandora_necklace"
+    },
+    "title": {
+      "translate": "advancements.blessingofpandora.root.title",
+      "color": "gold",
+      "bold": true
+    },
+    "description": {
+      "text": "",
+      "extra": [
+        {
+          "translate": "advancements.blessingofpandora.root.flavor",
+          "color": "#F2C979",
+          "italic": true
+        },
+        {
+          "text": "\n"
+        },
+        {
+          "translate": "advancements.blessingofpandora.root.description",
+          "color": "#EFE2C4",
+          "italic": false
+        }
+      ]
+    },
+    "background": "minecraft:textures/block/end_stone.png",
+    "frame": "task",
+    "show_toast": false,
+    "announce_to_chat": false,
+    "hidden": false
+  },
+  "criteria": {
+    "joined": {
+      "trigger": "minecraft:tick"
+    }
+  },
+  "requirements": [
+    [
+      "joined"
+    ]
+  ]
+}

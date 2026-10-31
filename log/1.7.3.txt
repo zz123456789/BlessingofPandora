@@ -1,0 +1,31 @@
+# 1.7.3
+
+## 中文
+
+- 修复第七诅咒反转后仍显示诅咒名称的问题，并为七个祝福补齐名称兜底；已有祝福自动显示正确名称，保留其它自定义改名。
+- 优化七个诅咒的 JEI 反转页面，适配原生信息页宽度，统一编号、换行和缩进；长内容可滚动查看，概率与进度仍实时更新。
+- 新增车万女仆联动宝珠「爱恋」及其进化形态「永生不悔·此生难忘」，仅在安装车万女仆时出现。佩戴潘多拉项链驯服第一位女仆时获得爱恋，每人一次，并永久绑定该女仆。
+- 爱恋在潘多拉串饰栏位佩戴时，向自己的女仆共享已适配的宝珠、诅咒、祝福和套装串饰效果；玩家专属机制及未适配的第三方效果列入黑名单。
+- 进化需佩戴累计 24 小时、绑定女仆从未死亡；佩戴期间由她累计造成 1,314,520 点实际生命伤害、玩家与她对战五子棋、中国象棋、国际象棋各胜一次、双方在同一维度的繁花森林累计超过 30 分钟，并发送同时含「女仆」「我爱你」且不含禁用词的聊天誓言。
+- 首次佩戴后，另驯女仆会清零累计进度并使进化宝珠退回爱恋，绑定与死亡记录保留。聊天同时含「女仆」及禁用词会永久损毁两种宝珠，创造副本和掉落物也会销毁；卸下、重登或进化不豁免惩罚。禁用词按字面匹配，正面句中含「不」也会触发。
+- 进化后保留共享能力，并让玩家与绑定女仆获得致命伤回满（各自独立 3 秒冷却）、飞行、伤害 +1314%（×14.14）和 520 有效护甲；玩家攻击不再伤害绑定女仆或触发她的受击反应。
+- 玩家飞行时，绑定女仆在 8 格内跟随；宝珠保持她的当前区块加载，旧区块保留 30 秒。卸下、离线、退化或损毁时，撤销进化能力和宝珠提供的区块加载。
+- 新增宝珠专属 HUD：悬停后长按任一 Alt 键约 0.5 秒打开，查看实时绑定、七项约定进度及进化能力；物品提示同步精简。
+- 两颗宝珠采用粉色流动名称与独立像素纹理，HUD 使用玫粉边框、规整卡片和滚动布局。
+
+适用 Minecraft 1.20.1 / Forge。建议客户端和服务端同时更新至 1.7.3。必装潘多拉之咒 2.4.26+、Curios 5.4.5+；若安装 JEI，需 15.20.0.106 或更新版本；车万女仆为可选联动，需 1.5.3 或更新版本。
+
+## English
+
+- Fixed the Seventh Curse retaining its curse name after reversal, with fallback names for all seven blessings. Existing blessings display the correct name while other custom names are preserved.
+- Reworked all seven JEI reversal guides to fit the native information-page width, with consistent numbering, wrapping and indentation. Long content is scrollable; chances and progress still update live.
+- Added Love and its evolved form, Eternal Devotion · Never Forgotten, available only with Touhou Little Maid installed. Tame your very first maid while wearing a Pandora Necklace to receive Love once per player, permanently bound to that maid.
+- Equip Love in a Pandora charm slot to share supported orb, curse, blessing and set-charm effects with your maids. Player-only mechanics and unadapted third-party effects are excluded.
+- Evolution requires 24 hours worn and no death record for the bound maid. While equipped, have her deal 1,314,520 actual health damage, defeat her once each in Gomoku, Chinese chess and chess, spend over 30 minutes together in a Flower Forest in the same dimension, and send a chat vow containing both “女仆” and “我爱你” without forbidden words.
+- After first wearing Love, taming another maid resets accumulated progress and reverts the evolved orb to Love; binding and death history remain. A message containing “女仆” and a forbidden word permanently destroys both forms, including creative copies and drops. Unequipping, relogging or evolving does not bypass penalties. Matching is literal: even a positive sentence containing “不” triggers destruction.
+- Evolution retains charm sharing and grants you and your bound maid full-health recovery from lethal damage (separate 3-second cooldowns), flight, +1314% damage (×14.14) and exactly 520 effective armor. Your attacks no longer harm the bound maid or trigger her hit reactions.
+- While you fly, the bound maid follows within 8 blocks. The orb keeps her current chunk loaded and retains previous chunks for 30 seconds. Unequipping, logging out, downgrading or destroying the orb removes its evolved powers and chunk loading.
+- Added a dedicated orb HUD: hover either orb and hold either Alt key for about 0.5 seconds to view live binding, seven-promise progress and evolved powers. Item tooltips are now more compact.
+- Both orbs have pink flowing names and their own pixel textures, alongside a rose-colored HUD with orderly cards and scrolling.
+
+For Minecraft 1.20.1 / Forge. Update both client and server to 1.7.3. Requires Curse of Pandora 2.4.26+ and Curios 5.4.5+. JEI is optional; if installed, use 15.20.0.106 or newer. Touhou Little Maid is optional; if installed, use 1.5.3 or newer.

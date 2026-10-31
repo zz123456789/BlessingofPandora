@@ -1,0 +1,9 @@
+{
+  "type": "blessingofpandora:starting_gift",
+  "conditions": [
+    {
+      "condition": "forge:loot_table_id",
+      "loot_table_id": "curseofpandora:pandora_initial"
+    }
+  ]
+}

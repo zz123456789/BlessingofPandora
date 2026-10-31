@@ -6,6 +6,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
@@ -13,11 +15,18 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 import java.util.List;
+import java.util.EnumMap;
+import java.util.Map;
 import java.util.UUID;
 
 @Mod.EventBusSubscriber(modid = BlessingOfPandora.MODID, value = Dist.CLIENT)
 public final class BlessingTooltip
 {
+    private static final BlessingDefinitions[] DEFINITIONS = BlessingDefinitions.values();
+    private static final TextColor SILVER = TextColor.fromRgb(0xC8D8E8);
+    private static final TextColor GOLD = TextColor.fromLegacyFormat(ChatFormatting.GOLD);
+    private static final Map<BlessingDefinitions, String[]> POEMS = createPoems();
+
     private BlessingTooltip()
     {
     }
@@ -26,12 +35,24 @@ public final class BlessingTooltip
     public static void onTooltip(ItemTooltipEvent event)
     {
         ItemStack stack = event.getItemStack();
+        if (stack.is(Items.ENCHANTED_BOOK)
+                && EnchantmentHelper.getEnchantments(stack)
+                .getOrDefault(BlessingOfPandora.PANDORA_CURSE.get(), 0) > 0)
+        {
+            event.getToolTip().add(Component.translatable(
+                            "enchantment.blessingofpandora.pandora_curse.obtain")
+                    .withStyle(ChatFormatting.GRAY));
+        }
         BlessingDefinitions definition = BlessingNbt.getBlessing(stack);
         if (definition == null)
         {
-            if (PandoraBraceletItem.isPandoraBracelet(stack))
+            if (PandoraItemUtil.isPandoraHolder(stack))
             {
-                PandoraBraceletItem.addPandoraPoem(event.getToolTip(), stack);
+                if (PandoraBraceletItem.isPandoraBracelet(stack))
+                {
+                    PandoraBraceletItem.addPandoraPoem(event.getToolTip(), stack);
+                }
+                addSneakRightClickTooltip(event.getToolTip());
                 return;
             }
             Item prudence = BlessingDefinitions.REQUIEM.curseItem();
@@ -40,6 +61,13 @@ public final class BlessingTooltip
                 event.getToolTip().add(Component.translatable(
                                 "item.blessingofpandora.effect.prudence_soul_sculpting")
                         .withStyle(ChatFormatting.GRAY));
+                event.getToolTip().add(
+                        ReversalDescriptions.soulSculptingAcquisitionStep());
+            }
+            if (isCurseItem(stack))
+            {
+                addKillReversalTooltip(event.getToolTip(), stack);
+                addSneakRightClickTooltip(event.getToolTip());
             }
             return;
         }
@@ -59,6 +87,7 @@ public final class BlessingTooltip
                     .withStyle(ChatFormatting.OBFUSCATED));
             tooltip.add(Component.translatable("item.blessingofpandora.tooltip.not_owner")
                     .withStyle(ChatFormatting.GRAY));
+            addSneakRightClickTooltip(tooltip);
             return;
         }
 
@@ -87,45 +116,100 @@ public final class BlessingTooltip
             case REQUIEM -> addRequiem(tooltip);
             case LIBERATION -> addLiberation(tooltip);
         }
+        addBlue(tooltip, "item.blessingofpandora.effect.spell_tolerance");
+        addKillReversalTooltip(tooltip, stack);
+        addSneakRightClickTooltip(tooltip);
+    }
+
+    private static void addKillReversalTooltip(List<Component> tooltip, ItemStack stack)
+    {
+        for (BlessingDefinitions definition : DEFINITIONS)
+        {
+            if (definition != BlessingDefinitions.FREEDOM
+                    && definition != BlessingDefinitions.FEARLESSNESS) continue;
+            Item curse = definition.curseItem();
+            if (curse != null && stack.is(curse))
+            {
+                tooltip.add(ReversalDescriptions.title(definition).copy().withStyle(ChatFormatting.GOLD));
+                for (Component step : ReversalDescriptions.steps(definition))
+                {
+                    tooltip.add(step.copy().withStyle(ChatFormatting.GRAY));
+                }
+                return;
+            }
+        }
+    }
+
+    private static boolean isCurseItem(ItemStack stack)
+    {
+        for (BlessingDefinitions definition : DEFINITIONS)
+        {
+            Item curse = definition.curseItem();
+            if (curse != null && stack.is(curse))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void addSneakRightClickTooltip(List<Component> tooltip)
+    {
+        tooltip.add(Component.translatable(
+                        "item.blessingofpandora.tooltip.sneak_right_click")
+                .withStyle(ChatFormatting.GRAY));
     }
 
     private static void addFreedom(List<Component> tooltip)
     {
+        addBlue(tooltip, "item.blessingofpandora.effect.freedom_2");
         addBlue(tooltip, "item.blessingofpandora.effect.freedom_3");
         addBlue(tooltip, "item.blessingofpandora.effect.freedom_4");
     }
 
     private static void addInfinity(List<Component> tooltip)
     {
+        addBlue(tooltip, "item.blessingofpandora.effect.infinity_2");
         addBlue(tooltip, "item.blessingofpandora.effect.infinity_3");
         addBlue(tooltip, "item.blessingofpandora.effect.infinity_4");
     }
 
     private static void addSpirit(List<Component> tooltip)
     {
-        addBlue(tooltip, "item.blessingofpandora.effect.spirit_luck");
+        addBlue(tooltip, "item.blessingofpandora.effect.spirit_1");
+        addBlue(tooltip, "item.blessingofpandora.effect.spirit_slot");
         addBlue(tooltip, "item.blessingofpandora.effect.spirit_3");
     }
 
     private static void addStrength(List<Component> tooltip)
     {
-        addBlue(tooltip, "item.blessingofpandora.effect.strength_strong");
+        addBlue(tooltip, "item.blessingofpandora.effect.strength_1");
+        addBlue(tooltip, "item.blessingofpandora.effect.strength_2");
+        addBlue(tooltip, "item.blessingofpandora.effect.strength_speed_immunity");
         addBlue(tooltip, "item.blessingofpandora.effect.strength_3");
     }
 
     private static void addFearlessness(List<Component> tooltip)
     {
+        addBlue(tooltip, "item.blessingofpandora.effect.fearlessness_1");
+        addBlue(tooltip, "item.blessingofpandora.effect.fearlessness_slot");
         addBlue(tooltip, "item.blessingofpandora.effect.fearlessness_3");
     }
 
     private static void addRequiem(List<Component> tooltip)
     {
+        addBlue(tooltip, "item.blessingofpandora.effect.requiem_combo");
+        addBlue(tooltip, "item.blessingofpandora.effect.requiem_floor");
+        addBlue(tooltip, "item.blessingofpandora.effect.requiem_defense");
         addBlue(tooltip, "item.blessingofpandora.effect.requiem_3");
         addBlue(tooltip, "item.blessingofpandora.effect.requiem_4");
     }
 
     private static void addLiberation(List<Component> tooltip)
     {
+        addBlue(tooltip, "item.blessingofpandora.effect.liberation_enchantments");
+        addBlue(tooltip, "item.blessingofpandora.effect.liberation_equipment");
+        addBlue(tooltip, "item.blessingofpandora.effect.liberation_counting");
         addBlue(tooltip, "item.blessingofpandora.effect.liberation_2");
         addBlue(tooltip, "item.blessingofpandora.effect.liberation_3");
     }
@@ -137,9 +221,8 @@ public final class BlessingTooltip
 
     private static void addPoem(List<Component> tooltip, BlessingDefinitions definition)
     {
-        String[] lines = poemLines(definition);
+        String[] lines = POEMS.get(definition);
         int index = Math.min(1, tooltip.size());
-        TextColor silver = TextColor.fromRgb(0xC8D8E8);
         for (int i = 0; i < lines.length; i++)
         {
             if (i == 0)
@@ -151,14 +234,24 @@ public final class BlessingTooltip
             else
             {
                 tooltip.add(index++, Component.literal(lines[i])
-                        .withStyle(style -> style.withColor(silver)));
+                        .withStyle(style -> style.withColor(SILVER)));
             }
         }
         tooltip.add(index, Component.literal("✦ ──────── ✦")
                 .withStyle(ChatFormatting.GOLD));
     }
 
-    private static String[] poemLines(BlessingDefinitions definition)
+    private static Map<BlessingDefinitions, String[]> createPoems()
+    {
+        Map<BlessingDefinitions, String[]> poems = new EnumMap<>(BlessingDefinitions.class);
+        for (BlessingDefinitions definition : DEFINITIONS)
+        {
+            poems.put(definition, createPoemLines(definition));
+        }
+        return Map.copyOf(poems);
+    }
+
+    private static String[] createPoemLines(BlessingDefinitions definition)
     {
         switch (definition)
         {
@@ -238,7 +331,6 @@ public final class BlessingTooltip
 
     private static boolean isGoldSlotLine(Component component)
     {
-        TextColor gold = TextColor.fromLegacyFormat(ChatFormatting.GOLD);
-        return gold != null && gold.equals(component.getStyle().getColor());
+        return GOLD != null && GOLD.equals(component.getStyle().getColor());
     }
 }

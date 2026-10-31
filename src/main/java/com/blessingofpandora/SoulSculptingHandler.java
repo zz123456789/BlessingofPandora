@@ -1,61 +1,67 @@
 package com.blessingofpandora;
 
+import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.Item;
-import net.minecraftforge.event.TickEvent;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
+import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
+import java.util.UUID;
+
 @Mod.EventBusSubscriber(modid = BlessingOfPandora.MODID)
 public final class SoulSculptingHandler
 {
+    private static final int EFFECT_TICKS = 100;
+    private static final UUID MAX_HEALTH_MODIFIER =
+            UUID.fromString("b1e55b1e-4d52-4a54-9e1e-000000000003");
+    private static final UUID DAMAGE_TAKEN_MODIFIER =
+            UUID.fromString("b1e55b1e-4d52-4a54-9e1e-000000000004");
+
     private SoulSculptingHandler()
     {
     }
 
     @SubscribeEvent
-    public static void onPlayerTick(TickEvent.PlayerTickEvent event)
+    public static void onLivingTick(LivingEvent.LivingTickEvent event)
     {
-        if (event.phase != TickEvent.Phase.END || event.player.level().isClientSide)
+        LivingEntity entity = event.getEntity();
+        if (entity.level().isClientSide)
         {
             return;
         }
 
-        Player player = event.player;
-        Item curse = BlessingDefinitions.REQUIEM.curseItem();
-        boolean wearingBrokenSoul = curse != null && BlessingNbt.isWearingCurse(player, curse);
-        if (!wearingBrokenSoul)
-        {
-            return;
-        }
-
-        float healthRatio = player.getMaxHealth() <= 0.0f
-                ? 1.0f
-                : player.getHealth() / player.getMaxHealth();
+        MobEffect soulSculpting =
+                BlessingOfPandora.SOUL_SCULPTING.get();
         MobEffectInstance current =
-                player.getEffect(BlessingOfPandora.SOUL_SCULPTING.get());
-        if (healthRatio >= 0.75f)
+                entity.getEffect(soulSculpting);
+        if (!hasEnoughOtherEffects(entity, current != null))
         {
             if (current != null)
             {
-                player.removeEffect(BlessingOfPandora.SOUL_SCULPTING.get());
+                entity.removeEffect(soulSculpting);
             }
+            updateAttributeModifiers(entity);
             return;
         }
 
-        int amplifier = healthRatio < 0.25f ? 4 : healthRatio < 0.50f ? 2 : 0;
-        if (current == null
-                || current.getAmplifier() != amplifier
-                || current.getDuration() < 100)
+        if (current == null || current.getDuration() < EFFECT_TICKS)
         {
-            player.removeEffect(BlessingOfPandora.SOUL_SCULPTING.get());
-            player.addEffect(new MobEffectInstance(
-                    BlessingOfPandora.SOUL_SCULPTING.get(),
-                    100, amplifier, false, true, true));
+            entity.removeEffect(soulSculpting);
+            entity.addEffect(new MobEffectInstance(
+                    soulSculpting,
+                    EFFECT_TICKS,
+                    0,
+                    false,
+                    true,
+                    true));
         }
+        updateAttributeModifiers(entity);
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
@@ -66,26 +72,110 @@ public final class SoulSculptingHandler
             return;
         }
 
-        if (event.getEntity() instanceof Player player)
+        LivingEntity entity = event.getEntity();
+        if (!entity.hasEffect(BlessingOfPandora.SOUL_SCULPTING.get()))
         {
-            MobEffectInstance effect =
-                    player.getEffect(BlessingOfPandora.SOUL_SCULPTING.get());
-            if (effect != null)
-            {
-                event.setAmount(event.getAmount() * (1.0f - reductionFor(effect.getAmplifier())));
-            }
+            return;
+        }
+
+        AttributeInstance damageTaken =
+                entity.getAttribute(
+                        BlessingOfPandora.SOUL_DAMAGE_TAKEN.get());
+        if (damageTaken == null)
+        {
+            return;
+        }
+
+        double multiplier = damageTaken.getValue();
+        if (multiplier != 1.0)
+        {
+            event.setAmount(
+                    (float) (event.getAmount() * multiplier));
         }
     }
 
-    private static float reductionFor(int amplifier)
+    private static boolean hasEnoughOtherEffects(LivingEntity entity, boolean hasSoulSculpting)
     {
-        return switch (amplifier)
+        // Active effects are keyed by type: amplifier upgrades never add a kind.
+        return entity.getActiveEffects().size() - (hasSoulSculpting ? 1 : 0) >= 10;
+    }
+
+    private static void updateAttributeModifiers(LivingEntity entity)
+    {
+        boolean active = entity.hasEffect(
+                BlessingOfPandora.SOUL_SCULPTING.get());
+        applyMaxHealthModifier(entity, active);
+        applyDamageTakenModifier(entity, active);
+    }
+
+    private static void applyMaxHealthModifier(
+            LivingEntity entity, boolean active)
+    {
+        if (!active && !entity.getAttributes().hasModifier(Attributes.MAX_HEALTH, MAX_HEALTH_MODIFIER)) return;
+        AttributeInstance attribute =
+                entity.getAttribute(Attributes.MAX_HEALTH);
+        if (attribute != null)
         {
-            case 0 -> 0.05f;
-            case 1 -> 0.07f;
-            case 2 -> 0.10f;
-            case 3 -> 0.15f;
-            default -> 0.20f;
-        };
+            applyTransientModifier(
+                    attribute,
+                    MAX_HEALTH_MODIFIER,
+                    "blessingofpandora:soul_sculpting_max_health",
+                    0.2,
+                    AttributeModifier.Operation.MULTIPLY_TOTAL,
+                    active);
+        }
+    }
+
+    private static void applyDamageTakenModifier(
+            LivingEntity entity, boolean active)
+    {
+        if (!active && !entity.getAttributes().hasModifier(
+                BlessingOfPandora.SOUL_DAMAGE_TAKEN.get(), DAMAGE_TAKEN_MODIFIER)) return;
+        AttributeInstance attribute = entity.getAttribute(
+                BlessingOfPandora.SOUL_DAMAGE_TAKEN.get());
+        if (attribute != null)
+        {
+            applyTransientModifier(
+                    attribute,
+                    DAMAGE_TAKEN_MODIFIER,
+                    "blessingofpandora:soul_sculpting_damage_taken",
+                    0.2,
+                    AttributeModifier.Operation.ADDITION,
+                    active);
+        }
+    }
+
+    private static void applyTransientModifier(
+            AttributeInstance attribute,
+            UUID modifierId,
+            String name,
+            double amount,
+            AttributeModifier.Operation operation,
+            boolean active)
+    {
+        AttributeModifier existing =
+                attribute.getModifier(modifierId);
+        if (!active)
+        {
+            if (existing != null)
+            {
+                attribute.removeModifier(modifierId);
+            }
+            return;
+        }
+        if (existing != null && existing.getAmount() == amount)
+        {
+            return;
+        }
+        if (existing != null)
+        {
+            attribute.removeModifier(modifierId);
+        }
+        attribute.addTransientModifier(
+                new AttributeModifier(
+                        modifierId,
+                        name,
+                        amount,
+                        operation));
     }
 }

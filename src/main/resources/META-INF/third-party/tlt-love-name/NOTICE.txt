@@ -1,0 +1,21 @@
+Pink flowing Love Orb names are adapted from The Long Travail by its contributors.
+Repository: https://github.com/3101516445z-dotcom/The-Long-Travail
+Reference commit: f295c4ead89c0a99ef2f7ed9f56e9cbba42bfb34
+License: Mozilla Public License 2.0 (included here).
+
+Reference files:
+src/main/java/com/thelongtravail/client/DiaryFontEffects.java
+src/main/java/com/thelongtravail/client/DiaryText.java
+src/main/java/com/thelongtravail/client/NameHaloKernel.java
+src/main/java/com/thelongtravail/mixin/DiaryFontMixin.java
+src/main/java/com/thelongtravail/item/NameColoring.java
+src/main/resources/assets/the_long_travail/shaders/core/diary_font.{vsh,fsh,json}
+
+Changes: independent Blessing of Pandora marker and shader namespace; fixed rose-pink palette;
+only Love Orb item names; mixed text runs preserve ordinary chat text; reduced halo samples;
+render-time animation, no item NBT updates, reflection or dependency on The Long Travail.
+
+The adapted Java source is included under META-INF/third-party/tlt-love-name/source/.
+The adapted shader source is in assets/blessingofpandora/shaders/core/love_name.*.
+Those files are distributed under MPL-2.0. Other project files retain their own licenses.
+
