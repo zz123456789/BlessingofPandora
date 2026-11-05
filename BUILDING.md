@@ -1,4 +1,4 @@
-# 构建 Blessing of Pandora 1.7.3
+# 构建 Blessing of Pandora 1.7.3fix
 
 本源码面向 Minecraft 1.20.1 / Forge 47.4.10。请安装 **JDK 17**，使用仓库自带的 Gradle Wrapper（**Gradle 8.8**），不需要另外安装 Gradle。
 
@@ -36,7 +36,7 @@ sh ./gradlew build --no-daemon
 `build` 会编译源码、生成资源、运行现有核心回归检查，并完成 Forge 重混淆。成功后成品位于：
 
 ```text
-build/libs/blessingofpandora-1.7.3.jar
+build/libs/blessingofpandora-1.7.3fix.jar
 ```
 
 `src/test` 中的回归检查随源码提供。开发环境的独立 GameTest、客户端截图探针和本地测试日志未包含在本次源码发布中；普通 `build` 不依赖它们。

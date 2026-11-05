@@ -1,8 +1,6 @@
 package com.blessingofpandora.network;
 
 import com.blessingofpandora.BlessingDefinitions;
-import com.blessingofpandora.ReversalPermission;
-import com.blessingofpandora.BlessingReversals;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkEvent;
@@ -12,6 +10,7 @@ import java.util.function.Supplier;
 
 public final class ReversalToggleC2SPacket
 {
+    private static final BlessingDefinitions[] DEFINITIONS = BlessingDefinitions.values();
     private final UUID playerId;
     private final String definitionId;
 
@@ -35,32 +34,21 @@ public final class ReversalToggleC2SPacket
     public static ReversalToggleC2SPacket decode(FriendlyByteBuf buffer)
     {
         return new ReversalToggleC2SPacket(
-                buffer.readUUID(), buffer.readUtf());
+                buffer.readUUID(), buffer.readUtf(32));
     }
 
     public static void handle(
             ReversalToggleC2SPacket message, Supplier<NetworkEvent.Context> contextSupplier)
     {
         NetworkEvent.Context context = contextSupplier.get();
-        context.enqueueWork(() -> {
-            ServerPlayer player = context.getSender();
-            if (player != null && message.playerId.equals(player.getUUID()))
-            {
-                BlessingDefinitions definition = findDefinition(message.definitionId);
-                if (definition == null)
-                {
-                    return;
-                }
-                ReversalPermission.toggle(player, definition);
-                BlessingReversals.syncReversalState(player);
-            }
-        });
+        ReversalClientRequests.toggle(context.getSender(), message.playerId,
+                findDefinition(message.definitionId));
         context.setPacketHandled(true);
     }
 
     private static BlessingDefinitions findDefinition(String id)
     {
-        for (BlessingDefinitions definition : BlessingDefinitions.values())
+        for (BlessingDefinitions definition : DEFINITIONS)
         {
             if (definition.id().equals(id))
             {

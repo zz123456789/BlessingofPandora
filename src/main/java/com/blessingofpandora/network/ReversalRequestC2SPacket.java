@@ -1,6 +1,5 @@
 package com.blessingofpandora.network;
 
-import com.blessingofpandora.BlessingReversals;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.network.NetworkEvent;
@@ -31,14 +30,7 @@ public final class ReversalRequestC2SPacket
             ReversalRequestC2SPacket message, Supplier<NetworkEvent.Context> contextSupplier)
     {
         NetworkEvent.Context context = contextSupplier.get();
-        context.enqueueWork(() -> {
-            ServerPlayer player = context.getSender();
-            if (player != null && message.playerId.equals(player.getUUID()))
-            {
-                BlessingNetwork.syncConfig(player);
-                BlessingReversals.syncReversalState(player);
-            }
-        });
+        ReversalClientRequests.request(context.getSender(), message.playerId);
         context.setPacketHandled(true);
     }
 }

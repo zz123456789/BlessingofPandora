@@ -93,11 +93,17 @@ public final class LoveProgressEvents
 
     public static void bindReward(ServerPlayer player, LivingEntity maid, ItemStack stack)
     {
+        LOADED_MAIDS.put(maid.getUUID(), new WeakReference<>(maid));
+        bindReward(player, maid.getUUID(), maid.getName().getString(), stack);
+    }
+
+    /** Deferred first-contract rewards retain identity without loading a maid or scanning chunks. */
+    public static void bindReward(ServerPlayer player, UUID maid, String name, ItemStack stack)
+    {
         LoveLedger ledger = LoveLedger.get(player.server);
-        LoveLedger.Bond bond = ledger.bind(player, maid.getUUID(), maid.getName().getString());
+        LoveLedger.Bond bond = ledger.bind(player, maid, name);
         if (bond == null) { stack.setCount(0); return; }
         stamp(stack, player.getUUID(), bond);
-        LOADED_MAIDS.put(maid.getUUID(), new WeakReference<>(maid));
         sync(player);
     }
 

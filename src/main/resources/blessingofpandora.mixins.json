@@ -6,6 +6,11 @@
   "refmap": "blessingofpandora.refmap.json",
   "mixins": [
     "LoveMobMoveControlAccessor",
+    "BlessingHealthLoadMixin",
+    "PandoraItemEnchantmentLookupMixin",
+    "EternalLoveFlightPacketMixin",
+    "EternalLoveFlightServerMixin",
+    "EternalLoveFlightPlayerMixin",
     "EternalLoveArmorAttributeMixin",
     "EternalLoveLivingCombatMixin",
     "EternalLoveServerPlayerDeathMixin",

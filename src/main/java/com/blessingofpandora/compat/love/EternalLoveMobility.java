@@ -44,7 +44,6 @@ public final class EternalLoveMobility
     {
         final ServerPlayer player;
         final UUID maid;
-        final boolean externalMayfly;
         Place current;
         final LinkedHashMap<Place, Long> old = new LinkedHashMap<>();
         WeakReference<LivingEntity> entity = new WeakReference<>(null);
@@ -54,7 +53,6 @@ public final class EternalLoveMobility
         {
             this.player = player;
             this.maid = maid;
-            externalMayfly = player.getAbilities().mayfly && !player.isCreative() && !player.isSpectator();
         }
     }
 
@@ -159,11 +157,7 @@ public final class EternalLoveMobility
 
     private static void grantFlight(State state)
     {
-        var abilities = state.player.getAbilities();
-        if (abilities.mayfly) return;
-        abilities.mayfly = true;
-        state.player.getPersistentData().putBoolean(FLIGHT_GRANTED, true);
-        syncAbilities(state);
+        if (EternalLoveFlight.acquire(state.player.getAbilities())) syncAbilities(state);
     }
 
     private static void syncAbilities(State state)
@@ -220,13 +214,13 @@ public final class EternalLoveMobility
         for (Place place : state.old.keySet()) force(state, place, false);
         if (state.recovery != null) force(state, state.recovery, false);
         var abilities = player.getAbilities();
-        if (!player.isCreative() && !player.isSpectator() && !state.externalMayfly)
+        EternalLoveFlight.release(abilities);
+        if (!player.isCreative() && !player.isSpectator() && !abilities.mayfly)
         {
-            abilities.mayfly = false;
             abilities.flying = false;
             player.fallDistance = 0;
-            syncAbilities(state);
         }
+        syncAbilities(state);
         player.getPersistentData().remove(FLIGHT_GRANTED);
     }
 
@@ -234,7 +228,8 @@ public final class EternalLoveMobility
     {
         if (!(event.getEntity() instanceof ServerPlayer player)
                 || !player.getPersistentData().getBoolean(FLIGHT_GRANTED)) return;
-        // A crash may have saved the borrowed vanilla ability before normal logout cleanup.
+        // Legacy versions wrote borrowed flight into the vanilla field. New
+        // independent leases are never persisted into mayfly and need no such cleanup.
         if (!player.isCreative() && !player.isSpectator())
         { player.getAbilities().mayfly = false; player.getAbilities().flying = false; player.onUpdateAbilities(); }
         player.getPersistentData().remove(FLIGHT_GRANTED);
@@ -250,6 +245,7 @@ public final class EternalLoveMobility
     {
         for (State state : java.util.List.copyOf(STATES.values())) clear(state.player);
         STATES.clear();
+        EternalLoveFlight.clear();
         if (registered) EternalLoveMaidFlight.clearAll();
     }
 

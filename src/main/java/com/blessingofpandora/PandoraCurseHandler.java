@@ -6,6 +6,8 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.util.Mth;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -21,6 +23,7 @@ public final class PandoraCurseHandler
     private static final UUID MAX_HEALTH_MODIFIER =
             UUID.fromString("b1e55b1e-4d52-4a54-9e1e-000000000002");
     private static final double MAX_HEALTH_PER_ITEM = -2.0;
+    private static final String ENCHANTMENT_ID = "blessingofpandora:pandora_curse";
 
     private PandoraCurseHandler()
     {
@@ -76,12 +79,29 @@ public final class PandoraCurseHandler
 
     private static boolean hasPandoraCurse(ItemStack stack)
     {
-        return EnchantmentHelper.getItemEnchantmentLevel(
+        // Dynamic item providers remain authoritative on every tick, including
+        // providers whose result changes without changing equipment or NBT.
+        return !stack.isEmpty() && EnchantmentHelper.getItemEnchantmentLevel(
                 BlessingOfPandora.PANDORA_CURSE.get(), stack) > 0;
+    }
+
+    /** Default Forge NBT semantics, without reparsing every enchantment ID into a ResourceLocation. */
+    public static int storedEnchantmentLevel(ItemStack stack)
+    {
+        if (stack.isEmpty() || !stack.hasTag() || !stack.getTag().contains("Enchantments", 9)) return 0;
+        ListTag enchantments = stack.getEnchantmentTags();
+        for (int i = 0; i < enchantments.size(); i++)
+        {
+            var entry = enchantments.getCompound(i);
+            // As in vanilla, use the first matching entry, including zero-level entries.
+            if (ENCHANTMENT_ID.equals(entry.getString("id"))) return Mth.clamp(entry.getInt("lvl"), 0, 255);
+        }
+        return 0;
     }
 
     private static void applyMaxHealthModifier(Player player, int count)
     {
+        if (count == 0 && !player.getAttributes().hasModifier(Attributes.MAX_HEALTH, MAX_HEALTH_MODIFIER)) return;
         AttributeInstance maxHealth = player.getAttribute(Attributes.MAX_HEALTH);
         if (maxHealth == null)
         {

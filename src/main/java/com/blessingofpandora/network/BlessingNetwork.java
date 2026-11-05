@@ -50,7 +50,7 @@ public final class BlessingNetwork
         CHANNEL.messageBuilder(ReversalToggleC2SPacket.class, nextId++, NetworkDirection.PLAY_TO_SERVER)
                 .encoder(ReversalToggleC2SPacket::encode)
                 .decoder(ReversalToggleC2SPacket::decode)
-                .consumerMainThread(ReversalToggleC2SPacket::handle)
+                .consumerNetworkThread(ReversalToggleC2SPacket::handle)
                 .add();
         CHANNEL.messageBuilder(ReversalStateS2CPacket.class, nextId++, NetworkDirection.PLAY_TO_CLIENT)
                 .encoder(ReversalStateS2CPacket::encode)
@@ -60,7 +60,7 @@ public final class BlessingNetwork
         CHANNEL.messageBuilder(ReversalRequestC2SPacket.class, nextId++, NetworkDirection.PLAY_TO_SERVER)
                 .encoder(ReversalRequestC2SPacket::encode)
                 .decoder(ReversalRequestC2SPacket::decode)
-                .consumerMainThread(ReversalRequestC2SPacket::handle)
+                .consumerNetworkThread(ReversalRequestC2SPacket::handle)
                 .add();
         CHANNEL.messageBuilder(ReversalActionC2SPacket.class, nextId++, NetworkDirection.PLAY_TO_SERVER)
                 .encoder(ReversalActionC2SPacket::encode)

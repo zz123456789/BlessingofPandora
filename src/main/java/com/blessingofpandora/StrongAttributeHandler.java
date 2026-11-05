@@ -29,6 +29,17 @@ public final class StrongAttributeHandler
             return;
         }
 
+        refresh(entity, true);
+    }
+
+    /** Restores old transient-only saves before vanilla reads and clamps Health. */
+    public static void restoreLoadedAttributes(LivingEntity entity)
+    {
+        if (!entity.level().isClientSide) refresh(entity, false);
+    }
+
+    private static void refresh(LivingEntity entity, boolean clampHealth)
+    {
         var attributes = entity.getAttributes();
         var strong = BlessingOfPandora.STRONG.get();
         if (!attributes.hasAttribute(strong))
@@ -51,6 +62,7 @@ public final class StrongAttributeHandler
             if (existing != null)
             {
                 maxHealth.removeModifier(MAX_HEALTH_MODIFIER);
+                clampHealth(entity, clampHealth);
             }
             return;
         }
@@ -68,5 +80,11 @@ public final class StrongAttributeHandler
                 "blessingofpandora:strong_max_health",
                 value,
                 AttributeModifier.Operation.MULTIPLY_TOTAL));
+        clampHealth(entity, clampHealth);
+    }
+
+    private static void clampHealth(LivingEntity entity, boolean clamp)
+    {
+        if (clamp && entity.getHealth() > entity.getMaxHealth()) entity.setHealth(entity.getMaxHealth());
     }
 }

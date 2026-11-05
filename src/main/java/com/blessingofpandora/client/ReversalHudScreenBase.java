@@ -87,7 +87,8 @@ public abstract class ReversalHudScreenBase extends Screen
             Layout layout = layout();
             for (Row row : layout.rows)
             {
-                if (!isFullyVisible(layout, row)
+                if (!intersectsViewport(layout, row)
+                        || mouseY < layout.contentTop || mouseY >= layout.contentBottom
                         || !row.buttonEnabled
                         || !row.containsButton(mouseX, mouseY))
                 {
@@ -104,11 +105,13 @@ public abstract class ReversalHudScreenBase extends Screen
     public boolean mouseScrolled(double mouseX, double mouseY, double delta)
     {
         Layout layout = layout();
-        if (layout.scrollMax <= 0)
+        if (layout.scrollMax <= 0 || delta == 0.0)
         {
             return false;
         }
-        int step = Math.max(8, layout.rowHeightHint / 2);
+        // A very tall row must not turn one wheel step into skipping most of its text.
+        int step = Math.max(8, Math.min(layout.rowHeightHint / 2,
+                Math.max(8, (layout.contentBottom - layout.contentTop) / 3)));
         scrollOffset = delta > 0.0
                 ? Math.max(0, scrollOffset - step)
                 : Math.min(layout.scrollMax, scrollOffset + step);
@@ -132,14 +135,17 @@ public abstract class ReversalHudScreenBase extends Screen
                 layout.panelY + TITLE_Y,
                 0xFFFFFFFF);
 
-        for (Row row : layout.rows)
+        graphics.enableScissor(layout.panelX + 1, layout.contentTop,
+                right - 1, layout.contentBottom);
+        try
         {
-            if (!isFullyVisible(layout, row))
+            for (Row row : layout.rows)
             {
-                continue;
+                if (intersectsViewport(layout, row))
+                    drawRow(graphics, layout, row, mouseX, mouseY);
             }
-            drawRow(graphics, layout, row, mouseX, mouseY);
         }
+        finally { graphics.disableScissor(); }
 
         if (layout.scrollMax > 0)
         {
@@ -256,7 +262,8 @@ public abstract class ReversalHudScreenBase extends Screen
                 row,
                 layout.buttonWidth,
                 buttonY,
-                row.containsButton(mouseX, mouseY));
+                mouseY >= layout.contentTop && mouseY < layout.contentBottom
+                        && row.containsButton(mouseX, mouseY));
     }
 
     private void drawButton(
@@ -336,11 +343,11 @@ public abstract class ReversalHudScreenBase extends Screen
                 0xFFD8A84C);
     }
 
-    private boolean isFullyVisible(Layout layout, Row row)
+    private boolean intersectsViewport(Layout layout, Row row)
     {
         int screenY = row.screenY();
-        return screenY >= layout.contentTop
-                && screenY + row.height <= layout.contentBottom;
+        return screenY < layout.contentBottom
+                && screenY + row.height > layout.contentTop;
     }
 
     private Layout layout()

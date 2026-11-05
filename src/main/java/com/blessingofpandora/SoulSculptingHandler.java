@@ -18,6 +18,7 @@ import java.util.UUID;
 public final class SoulSculptingHandler
 {
     private static final int EFFECT_TICKS = 100;
+    private static final int RENEW_AT_TICKS = 20;
     private static final UUID MAX_HEALTH_MODIFIER =
             UUID.fromString("b1e55b1e-4d52-4a54-9e1e-000000000003");
     private static final UUID DAMAGE_TAKEN_MODIFIER =
@@ -36,6 +37,17 @@ public final class SoulSculptingHandler
             return;
         }
 
+        refresh(entity, true);
+    }
+
+    /** Attributes/effects have loaded, but vanilla has not clamped the saved Health yet. */
+    public static void restoreLoadedAttributes(LivingEntity entity)
+    {
+        if (!entity.level().isClientSide) refresh(entity, false);
+    }
+
+    private static void refresh(LivingEntity entity, boolean clampHealth)
+    {
         MobEffect soulSculpting =
                 BlessingOfPandora.SOUL_SCULPTING.get();
         MobEffectInstance current =
@@ -46,13 +58,14 @@ public final class SoulSculptingHandler
             {
                 entity.removeEffect(soulSculpting);
             }
-            updateAttributeModifiers(entity);
+            updateAttributeModifiers(entity, clampHealth);
             return;
         }
 
-        if (current == null || current.getDuration() < EFFECT_TICKS)
+        if (current == null || !current.isInfiniteDuration() && current.getDuration() <= RENEW_AT_TICKS)
         {
-            entity.removeEffect(soulSculpting);
+            // Updating the same effect preserves continuous application. Renewal
+            // is infrequent; the ten-effect condition is still checked every tick.
             entity.addEffect(new MobEffectInstance(
                     soulSculpting,
                     EFFECT_TICKS,
@@ -61,7 +74,7 @@ public final class SoulSculptingHandler
                     true,
                     true));
         }
-        updateAttributeModifiers(entity);
+        updateAttributeModifiers(entity, clampHealth);
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
@@ -100,23 +113,25 @@ public final class SoulSculptingHandler
         return entity.getActiveEffects().size() - (hasSoulSculpting ? 1 : 0) >= 10;
     }
 
-    private static void updateAttributeModifiers(LivingEntity entity)
+    private static void updateAttributeModifiers(LivingEntity entity, boolean clampHealth)
     {
         boolean active = entity.hasEffect(
                 BlessingOfPandora.SOUL_SCULPTING.get());
-        applyMaxHealthModifier(entity, active);
+        boolean changed = applyMaxHealthModifier(entity, active);
         applyDamageTakenModifier(entity, active);
+        if (changed && clampHealth && entity.getHealth() > entity.getMaxHealth())
+            entity.setHealth(entity.getMaxHealth());
     }
 
-    private static void applyMaxHealthModifier(
+    private static boolean applyMaxHealthModifier(
             LivingEntity entity, boolean active)
     {
-        if (!active && !entity.getAttributes().hasModifier(Attributes.MAX_HEALTH, MAX_HEALTH_MODIFIER)) return;
+        if (!active && !entity.getAttributes().hasModifier(Attributes.MAX_HEALTH, MAX_HEALTH_MODIFIER)) return false;
         AttributeInstance attribute =
                 entity.getAttribute(Attributes.MAX_HEALTH);
         if (attribute != null)
         {
-            applyTransientModifier(
+            return applyTransientModifier(
                     attribute,
                     MAX_HEALTH_MODIFIER,
                     "blessingofpandora:soul_sculpting_max_health",
@@ -124,6 +139,7 @@ public final class SoulSculptingHandler
                     AttributeModifier.Operation.MULTIPLY_TOTAL,
                     active);
         }
+        return false;
     }
 
     private static void applyDamageTakenModifier(
@@ -145,7 +161,7 @@ public final class SoulSculptingHandler
         }
     }
 
-    private static void applyTransientModifier(
+    private static boolean applyTransientModifier(
             AttributeInstance attribute,
             UUID modifierId,
             String name,
@@ -161,11 +177,11 @@ public final class SoulSculptingHandler
             {
                 attribute.removeModifier(modifierId);
             }
-            return;
+            return existing != null;
         }
         if (existing != null && existing.getAmount() == amount)
         {
-            return;
+            return false;
         }
         if (existing != null)
         {
@@ -177,5 +193,6 @@ public final class SoulSculptingHandler
                         name,
                         amount,
                         operation));
+        return true;
     }
 }
